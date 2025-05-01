@@ -1,0 +1,835 @@
+openapi: 3.0.0
+info:
+  title: Blog API
+  description: API documentation for Blog
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: API base URL
+
+tags:
+  - name: Auth
+    description: Authentication endpoints
+  - name: Blog
+    description: Blog management endpoints
+  - name: Comment
+    description: Blog comments endpoints
+  - name: Image
+    description: Image management endpoints
+  - name: Tag
+    description: Tag management endpoints
+  - name: User
+    description: User management endpoints
+  - name: WaitList
+    description: Waitlist management endpoints
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+        message:
+          type: string
+      example:
+        success: false
+        error: "Invalid request"
+        message: "Required fields are missing"
+
+    Blog:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        slug:
+          type: string
+        featuredImage:
+          type: string
+          format: url
+        content:
+          type: string
+        status:
+          type: string
+          enum: [draft, published]
+        isFeatured:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+            format: objectId
+        authors:
+          type: array
+          items:
+            type: string
+            format: objectId
+      example:
+        title: "Getting Started with Node.js"
+        description: "A comprehensive guide to Node.js for beginners"
+        slug: "getting-started-with-nodejs"
+        featuredImage: "https://example.com/images/nodejs-guide.jpg"
+        content: "Node.js is a powerful runtime environment..."
+        status: "published"
+        isFeatured: true
+        tags: ["645f3d7e1234567890abcdef", "645f3d7e1234567890abcdee"]
+        authors: ["645f3d7e1234567890abcded"]
+
+    Tag:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        isPrimary:
+          type: boolean
+        blogs:
+          type: array
+          items:
+            type: string
+            format: objectId
+      example:
+        name: "Node.js"
+        slug: "nodejs"
+        isPrimary: true
+        blogs: ["645f3d7e1234567890abcdef", "645f3d7e1234567890abcdee"]
+
+    User:
+      type: object
+      properties:
+        name:
+          type: string
+        userName:
+          type: string
+        email:
+          type: string
+          format: email
+        blogs:
+          type: array
+          items:
+            type: string
+            format: objectId
+      example:
+        name: "John Doe"
+        userName: "johndoe"
+        email: "john@example.com"
+        blogs: ["645f3d7e1234567890abcdef"]
+
+    Comment:
+      type: object
+      properties:
+        content:
+          type: string
+        subComment:
+          type: string
+        blogId:
+          type: string
+          format: objectId
+        userId:
+          type: string
+          format: objectId
+      example:
+        content: "Great article! Very informative."
+        subComment: "Thanks for the feedback!"
+        blogId: "645f3d7e1234567890abcdef"
+        userId: "645f3d7e1234567890abcded"
+
+    WaitList:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        message:
+          type: string
+      example:
+        name: "Jane Smith"
+        email: "jane@example.com"
+        message: "Interested in early access to the platform"
+
+    ImageMedia:
+      type: object
+      properties:
+        title:
+          type: string
+        altText:
+          type: string
+        url:
+          type: string
+          format: url
+        type:
+          type: string
+          enum: [image, video, document]
+        size:
+          type: string
+        dimensions:
+          type: string
+      example:
+        title: "Node.js Architecture"
+        altText: "Diagram showing Node.js event loop"
+        url: "https://example.com/images/nodejs-arch.jpg"
+        type: "image"
+        size: "245.5 KB"
+        dimensions: "1920x1080"
+
+paths:
+  # Auth Routes
+  /auth/signin:
+    post:
+      tags:
+        - Auth
+      summary: Sign in user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              example:
+                email: "john@example.com"
+                password: "password123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+                example:
+                  success: true
+                  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  user:
+                    name: "John Doe"
+                    userName: "johndoe"
+                    email: "john@example.com"
+                    blogs: ["645f3d7e1234567890abcdef"]
+        '400':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error: "Authentication failed"
+                message: "Invalid email or password"
+
+  /auth/signup:
+    post:
+      tags:
+        - Auth
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - userName
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                userName:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              example:
+                name: "John Doe"
+                userName: "johndoe"
+                email: "john@example.com"
+                password: "password123"
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+                example:
+                  success: true
+                  message: "User created successfully"
+                  user:
+                    name: "John Doe"
+                    userName: "johndoe"
+                    email: "john@example.com"
+                    blogs: []
+
+  # Blog Routes
+  /blogs:
+    get:
+      tags:
+        - Blog
+      summary: Get all blogs
+      responses:
+        '200':
+          description: List of blogs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  response:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Blog'
+                example:
+                  success: true
+                  response:
+                    - title: "Getting Started with Node.js"
+                      description: "A comprehensive guide to Node.js for beginners"
+                      slug: "getting-started-with-nodejs"
+                      featuredImage: "https://example.com/images/nodejs-guide.jpg"
+                      content: "Node.js is a powerful runtime environment..."
+                      status: "published"
+                      isFeatured: true
+                      tags: ["645f3d7e1234567890abcdef"]
+                      authors: ["645f3d7e1234567890abcded"]
+                    - title: "Advanced TypeScript Patterns"
+                      description: "Deep dive into TypeScript design patterns"
+                      slug: "advanced-typescript-patterns"
+                      featuredImage: "https://example.com/images/typescript.jpg"
+                      content: "TypeScript offers powerful design patterns..."
+                      status: "published"
+                      isFeatured: false
+                      tags: ["645f3d7e1234567890abcdee"]
+                      authors: ["645f3d7e1234567890abcded"]
+
+  /blogs/{id}:
+    get:
+      tags:
+        - Blog
+      summary: Get blog by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+      responses:
+        '200':
+          description: Blog details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Blog'
+
+    patch:
+      tags:
+        - Blog
+      summary: Update blog
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Blog'
+      responses:
+        '200':
+          description: Blog updated successfully
+
+    delete:
+      tags:
+        - Blog
+      summary: Delete blog
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+      responses:
+        '200':
+          description: Blog deleted successfully
+
+  /blogs/slug/{slug}:
+    get:
+      tags:
+        - Blog
+      summary: Get blog by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Blog details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Blog'
+
+  # Comment Routes
+  /blogs/{blogId}/comments:
+    get:
+      tags:
+        - Comment
+      summary: Get blog comments
+      parameters:
+        - name: blogId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+
+    post:
+      tags:
+        - Comment
+      summary: Add comment to blog
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: blogId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                subComment:
+                  type: string
+      responses:
+        '201':
+          description: Comment added successfully
+
+  /blogs/comment/{commentId}:
+    patch:
+      tags:
+        - Comment
+      summary: Update comment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                subComment:
+                  type: string
+      responses:
+        '200':
+          description: Comment updated successfully
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Comment
+      summary: Delete comment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+      responses:
+        '200':
+          description: Comment deleted successfully
+        '404':
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Image Routes
+  /images:
+    get:
+      tags:
+        - Image
+      summary: Get all images
+      responses:
+        '200':
+          description: List of images
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ImageMedia'
+                example:
+                  success: true
+                  data:
+                    - title: "Node.js Architecture"
+                      altText: "Diagram showing Node.js event loop"
+                      url: "https://example.com/images/nodejs-arch.jpg"
+                      type: "image"
+                      size: "245.5 KB"
+                      dimensions: "1920x1080"
+                    - title: "TypeScript Logo"
+                      altText: "Official TypeScript Logo"
+                      url: "https://example.com/images/ts-logo.png"
+                      type: "image"
+                      size: "124.2 KB"
+                      dimensions: "800x600"
+
+  /images/upload:
+    post:
+      tags:
+        - Image
+      summary: Upload new image
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                title:
+                  type: string
+                altText:
+                  type: string
+      responses:
+        '201':
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  url:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/ImageMedia'
+                  message:
+                    type: string
+                example:
+                  success: true
+                  url: "https://example.com/images/uploaded-image.jpg"
+                  data:
+                    title: "Uploaded Image"
+                    altText: "Description of uploaded image"
+                    url: "https://example.com/images/uploaded-image.jpg"
+                    type: "image"
+                    size: "156.7 KB"
+                    dimensions: "1024x768"
+                  message: "Image uploaded successfully"
+
+  /images/{id}:
+    put:
+      tags:
+        - Image
+      summary: Update image details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - altText
+              properties:
+                title:
+                  type: string
+                altText:
+                  type: string
+      responses:
+        '200':
+          description: Image updated successfully
+
+  # Tag Routes
+  /tags:
+    get:
+      tags:
+        - Tag
+      summary: Get all tags
+      responses:
+        '200':
+          description: List of tags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  response:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tag'
+                example:
+                  success: true
+                  response:
+                    - name: "Node.js"
+                      slug: "nodejs"
+                      isPrimary: true
+                      blogs: ["645f3d7e1234567890abcdef"]
+                    - name: "TypeScript"
+                      slug: "typescript"
+                      isPrimary: true
+                      blogs: ["645f3d7e1234567890abcdee"]
+
+    post:
+      tags:
+        - Tag
+      summary: Create new tag
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - slug
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                isPrimary:
+                  type: boolean
+      responses:
+        '201':
+          description: Tag created successfully
+
+  # User Routes
+  /users:
+    get:
+      tags:
+        - User
+      summary: Get all users
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+    put:
+      tags:
+        - User
+      summary: Update user profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                userName:
+                  type: string
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: User updated successfully
+
+  # WaitList Routes
+  /waitList:
+    get:
+      tags:
+        - WaitList
+      summary: Get waitlist entries
+      responses:
+        '200':
+          description: List of waitlist entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WaitList'
+                example:
+                  status: true
+                  message: "Waitlist fetched successfully"
+                  data:
+                    - name: "Jane Smith"
+                      email: "jane@example.com"
+                      message: "Interested in early access"
+                    - name: "Mike Johnson"
+                      email: "mike@example.com"
+                      message: "Looking forward to the launch"
+
+    post:
+      tags:
+        - WaitList
+      summary: Add to waitlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - message
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                message:
+                  type: string
+              example:
+                name: "Jane Smith"
+                email: "jane@example.com"
+                message: "Interested in early access"
+      responses:
+        '201':
+          description: Added to waitlist successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/WaitList'
+                example:
+                  status: true
+                  message: "Waitlist added successfully"
+                  data:
+                    name: "Jane Smith"
+                    email: "jane@example.com"
+                    message: "Interested in early access" 
