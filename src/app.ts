@@ -35,6 +35,9 @@ app.use(
   })
 );
 
+app.get("/", async (req:any, res:any) => {
+  return res.send("Server is running");
+});
 
 // Define routes
 app.use('/api/blogs', blogRoutes);
