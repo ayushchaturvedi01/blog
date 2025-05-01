@@ -26,7 +26,7 @@ app.use(cors())
 passport.use('jwt', jwtStrategy);
 
 app.use(
-  "/api-doc",
+  "/api-docs",
   swagger.serve,
   swagger.setup(apiDocs, {
     swaggerOptions: {
